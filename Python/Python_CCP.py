@@ -1,34 +1,41 @@
 import requests
 import json
+from requests_pkcs12 import get
 
-# Path to public key
-cert_file = "/some/path/to/cert.pem"
-# Path to private key
-key_file = "/some/path/to/key.pem"
-client_cert = (cert_file, key_file)
+# Path to password protected .pfx
+pkcs12_filename = 'C:\\certs\\Python.pfx'
+pkcs12_password = '1234'
 
-# CCP query parameters
-query_params = { "Safe": "<SAFE_NAME>", "Object": "<ACCOUNT_NAME>", "AppId": "<APP_ID>" }
-
-# Safe name to query
-safe_name = "Servers"
-
-# Set inital http header
-headers = {'Content-Type': 'application/json'}
+# Variables needed for the provider to preform the lookup
+appID = "TestApps_App"
+safe = "Service Accounts"
+objectID = "Application-RandA_CyberArk_Local-192.168.1.34-administrator"
 
 # These likely will be the same but some do run a stand alone server for CCP.
 ccp_url = "https://cyberark.lab/AIMWebService/api/Accounts"
 pvwa_url = "https://cyberark.lab"
+
+# CCP query parameters
+query_params = { "Safe": safe, "Object": objectID, "AppId": appID }
+
+# Set inital http header
+headers = {'Content-Type': 'application/json'}
 
 # Function to pull creds from CyberArk via the CCP and return the raw response
 def get_creds():
     print("Getting creds for API user...", end="")
     url = ccp_url
 
-    response = requests.get(url, headers=headers, params=query_params, cert=client_cert, verify=False)
+    response = get(url, headers=headers, params=query_params, verify=False, pkcs12_filename=pkcs12_filename, pkcs12_password=pkcs12_password)
     print("Done")
 
-    return response.text
+    if response.status_code == 200:
+        return response.content.decode("utf-8")
+    else:
+        print("The CCP returned a status code of " + str(response.status_code))
+        print(response.text)
+        print("Exiting script")
+        exit(1)
 
 # Function to log into the CyberArk PAS API and return the auth token in a usable format
 def api_login(user, password):
